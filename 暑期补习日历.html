@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>暑期补习日历</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;background:#f5f5f7;color:#1d1d1f;padding:20px}
+.container{max-width:1100px;margin:0 auto}
+.header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.header h1{font-size:24px;font-weight:700;letter-spacing:-.5px}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+.actions button{padding:6px 14px;border-radius:16px;border:1.5px solid #d2d2d7;background:#fff;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;transition:all.15s}
+.actions button:hover{background:#e8e8ed}
+.actions .primary{background:#0071e3;color:#fff;border-color:#0071e3}
+.actions .primary:hover{background:#0077ed}
+.sub{color:#86868b;font-size:13px;margin-bottom:14px}
+.nav{display:flex;gap:8px;margin-bottom:14px}
+.nav button{padding:7px 18px;border-radius:18px;border:1.5px solid #d2d2d7;background:#fff;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:all.15s}
+.nav button.active{background:#0071e3;color:#fff;border-color:#0071e3}
+.nav button:hover:not(.active){background:#e8e8ed}
+
+table.cal{width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);display:none;table-layout:fixed}
+table.cal.active{display:table}
+table.cal th{padding:8px 4px;text-align:center;font-size:12px;font-weight:600;background:#f5f5f7;color:#6e6e73;border-bottom:1px solid #e8e8ed}
+table.cal th:last-child{color:#e34040}
+table.cal td{padding:4px;text-align:left;vertical-align:top;border:1px solid #f0f0f2;width:14.2857%;height:88px;cursor:pointer;transition:background.1s}
+table.cal td:hover{background:#f0f7ff}
+table.cal td.other{background:#fafafa;color:#c7c7cc}
+table.cal td .dnum{font-size:12px;font-weight:500;margin-bottom:2px}
+table.cal td .ev{font-size:10px;padding:1px 4px;border-radius:3px;margin-bottom:1px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+table.cal td .ev.math{background:#d4f5dc;color:#1a6b2e}
+table.cal td .ev.physics{background:#e2d5f5;color:#5a3d8a}
+table.cal td .ev.chemistry{background:#ffe4cc;color:#8a4a00}
+table.cal td .ev.biology{background:#cce8f5;color:#1a5a7a}
+table.cal td .ev.note{background:#fff9db;color:#8a7a00;border-left:2px solid #f0d060}
+table.cal td .ev.tbd{background:#f0f0f0;color:#86868b;font-style:italic}
+
+.legend{display:flex;gap:12px;margin-top:14px;flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:5px;font-size:12px;color:#515154}
+.legend .dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+
+/* Modal */
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.box{background:#fff;border-radius:14px;padding:22px;width:360px;max-width:100%;box-shadow:0 8px 30px rgba(0,0,0,.15)}
+.box h3{font-size:16px;font-weight:600;margin-bottom:14px}
+.box .f{margin-bottom:10px}
+.box label{font-size:12px;font-weight:500;color:#6e6e73;display:block;margin-bottom:3px}
+.box select,.box input{width:100%;padding:7px 10px;border:1.5px solid #d2d2d7;border-radius:8px;font-size:13px;font-family:inherit;outline:none}
+.box select:focus,.box input:focus{border-color:#0071e3}
+.box .elist{max-height:160px;overflow-y:auto;margin-bottom:10px}
+.box .erow{display:flex;align-items:center;justify-content:space-between;padding:4px 6px;border-radius:5px;margin-bottom:3px;font-size:12px}
+.box .erow .del{cursor:pointer;color:#e34040;font-size:15px;line-height:1;padding:0 4px}
+.box .btns{display:flex;gap:6px;justify-content:flex-end;margin-top:14px}
+.box .btns button{padding:7px 16px;border-radius:16px;border:1.5px solid #d2d2d7;background:#fff;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit}
+.box .btns .primary{background:#0071e3;color:#fff;border-color:#0071e3}
+.box .btns .danger{color:#e34040;border-color:#e34040}
+
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1d1d1f;color:#fff;padding:10px 22px;border-radius:10px;font-size:13px;z-index:200;opacity:0;transition:opacity.3s;pointer-events:none}
+.toast.show{opacity:1}
+
+@media(max-width:640px){
+  body{padding:10px}
+  h1{font-size:20px}
+  table.cal td{height:60px;padding:2px}
+  table.cal td .ev{font-size:9px;white-space:normal;overflow:visible}
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>📅 暑期补习日历</h1>
+    <div class="actions">
+      <button class="primary" onclick="share()">💬 分享</button><a href="数学暑期复习计划.html" style="text-decoration:none"><button style="background:#e8e8ed">📐 数学复习计划</button></a>
+    </div>
+  </div>
+  <div class="sub">点击日期可编辑 · 6月19日 — 8月31日</div>
+  <div class="nav" id="nav"></div>
+  <div id="cals"></div>
+  <div class="legend">
+    <span><div class="dot" style="background:#d4f5dc"></div>数学</span>
+    <span><div class="dot" style="background:#e2d5f5"></div>物理</span>
+    <span><div class="dot" style="background:#ffe4cc"></div>化学</span>
+    <span><div class="dot" style="background:#cce8f5"></div>生物</span>
+    <span><div class="dot" style="background:#fff9db;border-left:2px solid #f0d060"></div>备注</span>
+    <span><div class="dot" style="background:#f0f0f0"></div>待定</span>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== Data ==========
+const DATA = {
+  "6-22": [
+    [
+      "备注",
+      "合格考集训"
+    ]
+  ],
+  "6-23": [
+    [
+      "备注",
+      "合格考集训"
+    ]
+  ],
+  "6-24": [
+    [
+      "备注",
+      "合格考集训"
+    ]
+  ],
+  "6-25": [
+    [
+      "备注",
+      "合格考集训"
+    ]
+  ],
+  "6-26": [
+    [
+      "备注",
+      "合格考集训"
+    ]
+  ],
+  "6-28": [
+    [
+      "备注",
+      "合格考"
+    ]
+  ],
+  "6-29": [
+    [
+      "物理",
+      "19:00试课"
+    ],
+    [
+      "备注",
+      "合格考"
+    ]
+  ],
+  "7-2": [
+    [
+      "数学",
+      "18:30-20:30"
+    ],
+    [
+      "生物",
+      "15:30-17:30"
+    ]
+  ],
+  "7-4": [
+    [
+      "数学",
+      "待定"
+    ],
+    [
+      "生物",
+      "15:30-17:30"
+    ],
+    [
+      "备注",
+      "晚上外出"
+    ]
+  ],
+  "7-7": [
+    [
+      "数学",
+      "18:30-20:30 函数综合复习"
+    ],
+    [
+      "生物",
+      "15:30-17:30"
+    ]
+  ],
+  "7-9": [
+    [
+      "数学",
+      "18:30-20:30 三角函数(1)"
+    ],
+    [
+      "生物",
+      "15:30-17:30"
+    ]
+  ],
+  "7-11": [
+    [
+      "数学",
+      "18:30-20:30 三角函数(2)"
+    ],
+    [
+      "生物",
+      "15:30-17:30"
+    ]
+  ],
+  "7-14": [
+    [
+      "数学",
+      "18:30-20:30 数列(1)"
+    ],
+    [
+      "生物",
+      "15:30-17:30"
+    ]
+  ],
+  "7-16": [
+    [
+      "数学",
+      "18:30-20:30 数列(2)"
+    ],
+    [
+      "生物",
+      "15:30-17:30"
+    ]
+  ],
+  "7-18": [
+    [
+      "数学",
+      "18:30-20:30 向量"
+    ],
+    [
+      "生物",
+      "15:30-17:30"
+    ]
+  ],
+  "7-21": [
+    [
+      "数学",
+      "18:30-20:30 解析几何(1)"
+    ],
+    [
+      "生物",
+      "15:30-17:30"
+    ]
+  ],
+  "7-23": [
+    [
+      "数学",
+      "18:30-20:30 解析几何(2)"
+    ],
+    [
+      "生物",
+      "15:30-17:30"
+    ]
+  ],
+  "7-25": [
+    [
+      "数学",
+      "18:30-20:30 立体几何(1)"
+    ],
+    [
+      "生物",
+      "15:30-17:30"
+    ]
+  ],
+  "7-28": [
+    [
+      "数学",
+      "9:00-11:00 立体几何(2)"
+    ],
+    [
+      "生物",
+      "15:30-17:30"
+    ]
+  ],
+  "7-30": [
+    [
+      "数学",
+      "9:00-11:00 导数(1)"
+    ],
+    [
+      "生物",
+      "15:30-17:30"
+    ]
+  ],
+  "8-1": [
+    [
+      "数学",
+      "9:00-11:00 导数(2)"
+    ],
+    [
+      "生物",
+      "15:30-17:30"
+    ]
+  ],
+  "8-4": [
+    [
+      "数学",
+      "9:00-11:00 概率统计"
+    ],
+    [
+      "生物",
+      "15:30-17:30"
+    ]
+  ],
+  "8-6": [
+    [
+      "数学",
+      "9:00-11:00 不等式"
+    ],
+    [
+      "生物",
+      "15:30-17:30"
+    ]
+  ],
+  "8-8": [
+    [
+      "数学",
+      "9:00-11:00 综合复习(1)"
+    ],
+    [
+      "生物",
+      "15:30-17:30"
+    ]
+  ],
+  "8-11": [
+    [
+      "数学",
+      "9:00-11:00 综合复习(2)"
+    ]
+  ]
+};
+const SUBJ = {'数学':'math','物理':'physics','化学':'chemistry','生物':'biology'};
+const WNAMES = ['一','二','三','四','五','六','日'];
+const MONTHS = [{i:6,y:2026,n:'6月'},{i:7,y:2026,n:'7月'},{i:8,y:2026,n:'8月'}];
+
+function norm(d){return (d+6)%7}
+function timeSort(s){
+  if(s=='待定')return 9999;if(s=='备注')return 9998;
+  var m=s.match(/(\d{1,2}):(\d{2})/);return m?parseInt(m[1])*60+parseInt(m[2]):9999
+}
+
+// ========== Storage ==========
+var evs;
+function load(){
+  try{var s=localStorage.getItem('ss_2026');if(s){evs=JSON.parse(s);return}}catch(e){}
+  evs=JSON.parse(JSON.stringify(DATA))
+}
+function save(){
+  try{localStorage.setItem('ss_2026',JSON.stringify(evs))}catch(e){}
+}
+load();
+
+// ========== Rendering ==========
+function monthCal(mo){
+  var {i:m,y:y}=mo;
+  var first=new Date(y,m-1,1).getDay();
+  var f=norm(first); // 0=Mon,6=Sun
+  var days=new Date(y,m,0).getDate();
+  var prev=new Date(y,m-1,0).getDate();
+  var t=f+days,rem=(7-t%7)%7;
+  
+  var tbl=document.createElement('table');
+  tbl.className='cal';
+  tbl.id='cal-'+m;
+  
+  // Header
+  var thead=document.createElement('thead');
+  var hr=document.createElement('tr');
+  WNAMES.forEach(function(w){
+    var th=document.createElement('th');
+    th.textContent=w;
+    hr.appendChild(th);
+  });
+  thead.appendChild(hr);
+  tbl.appendChild(thead);
+  
+  // Body
+  var tbody=document.createElement('tbody');
+  var row;
+  var cell=0;
+  
+  function newRow(){
+    row=document.createElement('tr');
+    tbody.appendChild(row);
+  }
+  
+  function addCell(content,cls){
+    var td=document.createElement('td');
+    if(cls)td.className=cls;
+    td.appendChild(content);
+    row.appendChild(td);
+  }
+  
+  newRow();
+  
+  // Previous month padding
+  for(var i=0;i<f;i++){
+    var dive=document.createElement('div');
+    dive.className='dnum';
+    dive.textContent=prev-f+1+i;
+    addCell(dive,'other');
+    cell++;
+  }
+  
+  // Current month
+  for(var d=1;d<=days;d++){
+    if(cell>0 && cell%7==0)newRow();
+    cell++;
+    
+    var dive=document.createElement('div');
+    dive.className='dnum';
+    dive.textContent=d;
+    
+    var td=document.createElement('td');
+    td.appendChild(dive);
+    
+    var key=m+'-'+d;
+    var dayEvs=(evs[key]||[]).slice();
+    dayEvs.sort(function(a,b){return timeSort(a[1])-timeSort(b[1])});
+    
+    dayEvs.forEach(function(e){
+      var subj=e[0],time=e[1];
+      var ev=document.createElement('div');
+      if(subj=='备注'){
+        ev.className='ev note';
+        ev.textContent='📌'+time;
+      }else{
+        var c=SUBJ[subj]||'';
+        ev.className='ev '+c+(time=='待定'?' tbd':'');
+        ev.textContent=(time=='待定'?subj+'⏳':subj+' '+time);
+      }
+      td.appendChild(ev);
+    });
+    
+    td.onclick=function(mm,dd){return function(){try{editor(mm,dd)}catch(e){alert('出错:'+e.message+'\n'+e.stack)}}}(m,d);
+    row.appendChild(td);
+  }
+  
+  // Next month padding
+  for(var i=0;i<rem;i++){
+    if(cell>0 && cell%7==0)newRow();
+    cell++;
+    var dive=document.createElement('div');
+    dive.className='dnum';
+    dive.textContent=i+1;
+    addCell(dive,'other');
+  }
+  
+  tbl.appendChild(tbody);
+  return tbl;
+}
+
+function renderAll(){
+  var container=document.getElementById('cals');
+  container.innerHTML='';
+  MONTHS.forEach(function(mo,idx){
+    var cal=monthCal(mo);
+    if(idx===defIdx)cal.className='cal active';
+    container.appendChild(cal);
+  });
+}
+
+// ========== Navigation ==========
+var nav=document.getElementById('nav');
+// Default to current month
+var defIdx=0,cm=(new Date()).getMonth()+1;
+MONTHS.forEach(function(m,idx){
+  if(m.i===cm)defIdx=idx;
+});
+MONTHS.forEach(function(m,idx){
+  var btn=document.createElement('button');
+  btn.textContent=m.n;
+  btn.className=idx===defIdx?'active':'';
+  btn.onclick=function(){switchM(idx)};
+  nav.appendChild(btn);
+});
+
+function switchM(idx){
+  document.querySelectorAll('.cal').forEach(function(c){c.className='cal'});
+  document.getElementById('cal-'+MONTHS[idx].i).className='cal active';
+  document.querySelectorAll('.nav button').forEach(function(b,i){b.className=i===idx?'active':''});
+}
+
+// ========== Editor ==========
+function toggleTimeFields(){try{
+  var isNote=document.getElementById('sSel').value==='备注';
+  var tf=document.getElementById('timeFields');
+  var cl=document.getElementById('customLabel');
+  if(tf){tf.style.display=isNote?'none':'block'}
+  if(cl){cl.textContent=isNote?'内容':'备注（选填）'}
+}catch(e){}
+}
+function calcEnd(){
+  var sH=parseInt(document.getElementById('sH').value);
+  var sM=parseInt(document.getElementById('sM').value);
+  var dur=parseFloat(document.getElementById('durSel').value);
+  if(sH>=0&&sM>=0&&dur){
+    var total=sH*60+sM+Math.round(dur*60);
+    var eH=Math.floor(total/60)%24;
+    var eM=total%60;
+    document.getElementById('endDisplay').textContent=String(eH).padStart(2,'0')+':'+String(eM).padStart(2,'0');
+  }
+}
+function editor(m,d){
+  var key=m+'-'+d;
+  var editIdx=-1;
+  var list=evs[key]||[];
+  
+  var mask=document.createElement('div');
+  mask.className='mask';
+  mask.onclick=function(e){if(e.target===mask)mask.remove()};
+  
+  var box=document.createElement('div');
+  box.className='box';
+  box.innerHTML='<h3>'+m+'月'+d+'日 编辑</h3>';
+  
+  var elist=document.createElement('div');
+  elist.className='elist';
+  function renderList(){
+    var cur=evs[key]||[];
+    elist.innerHTML='';
+    if(!cur.length){elist.innerHTML='<div style="color:#c7c7cc;padding:6px 0;font-size:12px">暂无安排</div>';return}
+    cur.slice().sort(function(a,b){return timeSort(a[1])-timeSort(b[1])}).forEach(function(item,i){
+      var s=item[0],t=item[1];
+      var row=document.createElement('div');
+      row.className='erow';
+      var label=document.createElement('span');
+      label.style.cursor='pointer';
+      if(s=='备注'){label.innerHTML='📌 '+t}else{label.textContent=s+' '+t}
+      editIdx=-1;
+      label.onclick=function(){
+        editIdx=i;
+        addBtn.textContent='保存';
+        document.getElementById('sSel').value=s;
+        var mt=t.match(/^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})(?:\s+(.*))?$/);
+        if(mt){
+          document.getElementById('sH').value=mt[1].padStart(2,'0');
+          document.getElementById('sM').value=mt[2].padStart(2,'0');
+          var sm=parseInt(mt[1])*60+parseInt(mt[2]);
+          var em=parseInt(mt[3])*60+parseInt(mt[4]);
+          var dm=em-sm,ops=[60,90,120],cl='1.5',md=999;
+          for(var di=0;di<ops.length;di++){var df=Math.abs(dm-ops[di]);if(df<md){md=df;cl=String(ops[di]/60);}}
+          document.getElementById('durSel').value=cl;
+          document.getElementById('tCustom').value=mt[5]||'';
+          calcEnd();
+        }else{
+          document.getElementById('tCustom').value=t;
+        }
+      };
+      var del=document.createElement('span');
+      del.className='del';
+      del.textContent='✕';
+      del.onclick=function(){
+        cur.splice(i,1);
+        if(cur.length)evs[key]=cur;else delete evs[key];
+        save();renderList();renderAll()
+      };
+      row.appendChild(label);row.appendChild(del);
+      elist.appendChild(row);
+    });
+  }
+  renderList();
+  box.appendChild(elist);
+  
+  // Form
+  function timeSelects(prefix){
+    var h='<select id="'+prefix+'H" style="width:70px" onchange="calcEnd()">';
+    for(var i=0;i<24;i++)h+='<option>'+String(i).padStart(2,'0')+'</option>';
+    h+='</select><span style="margin:0 2px;color:#86868b">:</span>'+
+       '<select id="'+prefix+'M" style="width:70px" onchange="calcEnd()">';
+    for(var i=0;i<60;i+=30)h+='<option>'+String(i).padStart(2,'0')+'</option>';
+    return h+'</select>';
+  }
+  var fdiv=document.createElement('div');
+  fdiv.innerHTML=
+    '<div class="f"><label>科目</label><select id="sSel" onchange="toggleTimeFields()"><option>数学</option><option>物理</option><option>化学</option><option>生物</option><option>备注</option></select></div>'+
+    '<div id="timeFields">'+
+    '<div class="f"><label>开始时间</label><div>'+timeSelects('s')+'</div></div>'+
+    '<div class="f"><label>时长</label><select id="durSel" style="width:100px" onchange="calcEnd()">'+
+    '<option value="1">1 小时</option><option value="1.5">1.5 小时</option><option value="2" selected>2 小时</option></select>'+
+    '<span style="margin-left:12px;color:#1d1d1f;font-size:13px">→ <strong id="endDisplay"></strong></span></div>'+
+    '</div>'+
+    '<div class="f"><label id="customLabel">备注（选填）</label><input id="tCustom" placeholder="如：试课"></div>';
+  box.appendChild(fdiv);
+  
+  var btns=document.createElement('div');
+  btns.className='btns';
+  var cancel=document.createElement('button');
+  cancel.textContent='取消';
+  cancel.onclick=function(){mask.remove()};
+  btns.appendChild(cancel);
+  
+  var addBtn=document.createElement('button');
+  addBtn.className='primary';
+  addBtn.textContent='添加';
+  addBtn.onclick=function(){
+    var cur=evs[key]||[];
+    var subj=document.getElementById('sSel').value;
+    var sH=parseInt(document.getElementById('sH').value);
+    var sM=parseInt(document.getElementById('sM').value);
+    var dur=parseFloat(document.getElementById('durSel').value);
+    var custom=document.getElementById('tCustom').value.trim();
+    var time;
+    if(subj==='备注'){
+      if(!custom){toast('请输入备注内容');return}
+      time=custom;
+    }else if(!isNaN(sH)&&!isNaN(sM)&&dur){
+      var total=sH*60+sM+Math.round(dur*60);
+      var eH=Math.floor(total/60)%24;
+      var eM=total%60;
+      time=String(sH).padStart(2,'0')+':'+String(sM).padStart(2,'0')+'-'+String(eH).padStart(2,'0')+':'+String(eM).padStart(2,'0');
+    }else if(custom){
+      time=custom;
+    }else{
+      toast('请选择时间');return
+    }
+    if(custom&&time&&!isNaN(sH)&&subj!=='备注')time+=' '+custom;
+    if(editIdx>=0&&editIdx<cur.length){
+      cur[editIdx]=[subj,time];
+      evs[key]=cur;
+    }else{
+      if(!evs[key])evs[key]=[];
+      evs[key].push([subj,time]);
+    }
+    save();renderList();renderAll();
+    editIdx=-1;
+    document.getElementById('sH').value='09';
+    document.getElementById('sM').value='00';
+    document.getElementById('durSel').value='2';
+    document.getElementById('tCustom').value='';
+    document.getElementById('endDisplay').textContent='';
+    addBtn.textContent='添加';
+    toast('已添加');
+  }
+  btns.appendChild(addBtn);
+  box.appendChild(btns);
+  
+  mask.appendChild(box);
+  document.body.appendChild(mask);toggleTimeFields();
+  setTimeout(function(){document.getElementById('sH').focus()},100);
+}
+
+// ========== Export/Import/Share ==========
+
+
+function share(){
+  var url=window.location.href;
+  if(navigator.clipboard){navigator.clipboard.writeText(url).then(function(){toast('链接已复制')})}
+  else{toast('复制链接发到微信')}
+}
+
+function toast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast show';
+  clearTimeout(t._t);
+  t._t=setTimeout(function(){t.className='toast'},2000);
+}
+
+// ========== Init ==========
+renderAll();
+</script>
+</body>
+</html>
